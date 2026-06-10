@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вечные Flip-Часы</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #0f1015;
+            font-family: Arial, sans-serif;
+        }
+        .clock {
+            display: flex;
+            gap: 15px;
+            padding: 25px;
+            background: #050508;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            align-items: center;
+        }
+        .separator {
+            font-size: 5.5rem;
+            color: #ff3b30;
+            line-height: 110px;
+            animation: blink 1s infinite;
+            user-select: none;
+        }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        
+        /* Карточка одной цифры */
+        .card {
+            position: relative;
+            width: 75px;
+            height: 110px;
+            perspective: 400px;
+            user-select: none;
+        }
+        
+        /* Общие стили для всех половинок */
+        .card-top, .card-bottom, .flip-panel {
+            position: absolute;
+            left: 0; width: 100%; height: 50%;
+            overflow: hidden;
+            background: #1e2029;
+            color: #fff;
+            font-size: 5.5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        /* Контейнер для текста внутри половинок, центрирующий цифру */
+        .text-wrapper {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 110px; /* Высота всей карточки */
+            line-height: 110px;
+            display: block;
+        }
+
+        /* Верхние половинки: текст прижат к верху */
+        .card-top, .flip-top {
+            top: 0;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            border-bottom: 1px solid rgba(0,0,0,0.4);
+        }
+        .card-top .text-wrapper, .flip-top .text-wrapper {
+            top: 0;
+        }
+        
+        /* Нижние половинки: текст смещен вверх, чтобы была видна только нижняя часть */
+        .card-bottom, .flip-bottom {
+            bottom: 0;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .card-bottom .text-wrapper, .flip-bottom .text-wrapper {
+            bottom: 0; /* Сдвигает базовую линию цифры на свое место */
+        }
+        
+        /* 3D Анимационные панели переворота */
+        .flip-panel {
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+        }
+        .flip-top {
+            transform-origin: bottom center;
+            z-index: 3;
+        }
+        .flip-bottom {
+            transform: rotateX(180deg);
+            transform-origin: top center;
+            z-index: 2;
+        }
+
+        /* Запуск CSS анимации падения плашки */
+        .flip .flip-top {
+            animation: flipTop 0.4s ease-in forwards;
+        }
+        .flip .flip-bottom {
+            animation: flipBottom 0.4s ease-out forwards;
+        }
+
+        @keyframes flipTop {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-90deg); }
+        }
+        @keyframes flipBottom {
+            0% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock">
+        <div class="card" id="h1"><div class="card-top"><span class="text-wrapper">0</span></div><div class="card-bottom"><span class="text-wrapper">0</span></div></div>
+        <div class="card" id="h2"><div class="card-top"><span class="text-wrapper">0</span></div><div class="card-bottom"><span class="text-wrapper">0</span></div></div>
+        <div class="separator">:</div>
+        <div class="card" id="m1"><div class="card-top"><span class="text-wrapper">0</span></div><div class="card-bottom"><span class="text-wrapper">0</span></div></div>
+        <div class="card" id="m2"><div class="card-top"><span class="text-wrapper">0</span></div><div class="card-bottom"><span class="text-wrapper">0</span></div></div>
+        <div class="separator">:</div>
+        <div class="card" id="s1"><div class="card-top"><span class="text-wrapper">0</span></div><div class="card-bottom"><span class="text-wrapper">0</span></div></div>
+        <div class="card" id="s2"><div class="card-top"><span class="text-wrapper">0</span></div><div class="card-bottom"><span class="text-wrapper">0</span></div></div>
+    </div>
+
+    <script>
+        function setupCard(cardId) {
+            const card = document.getElementById(cardId);
+            return {
+                card,
+                topText: card.querySelector('.card-top .text-wrapper'),
+                bottomText: card.querySelector('.card-bottom .text-wrapper'),
+                currentVal: '0'
+            };
+        }
+
+        const cards = {
+            h1: setupCard('h1'), h2: setupCard('h2'),
+            m1: setupCard('m1'), m2: setupCard('m2'),
+            s1: setupCard('s1'), s2: setupCard('s2')
+        };
+
+        function flipTo(cardObj, newVal) {
+            if (cardObj.currentVal === newVal) return;
+
+            const card = cardObj.card;
+            
+            // Очистка предыдущей анимации
+            const oldT = card.querySelector('.flip-top');
+            const oldB = card.querySelector('.flip-bottom');
+            if (oldT) oldT.remove();
+            if (oldB) oldB.remove();
+            card.classList.remove('flip');
+
+            // Создаем падающие плашки с правильной структурой .text-wrapper внутри
+            const flipTop = document.createElement('div');
+            flipTop.className = 'flip-panel flip-top';
+            flipTop.innerHTML = `<span class="text-wrapper">${cardObj.currentVal}</span>`;
+
+            const flipBottom = document.createElement('div');
+            flipBottom.className = 'flip-panel flip-bottom';
+            flipBottom.innerHTML = `<span class="text-wrapper">${newVal}</span>`;
+
+            card.appendChild(flipTop);
+            card.appendChild(flipBottom);
+
+            // Меняем текст подложки
+            cardObj.topText.textContent = newVal;
+            
+            card.offsetHeight; // Триггер перерисовки
+            card.classList.add('flip');
+
+            setTimeout(() => {
+                cardObj.bottomText.textContent = newVal;
+                flipTop.remove();
+                flipBottom.remove();
+                card.classList.remove('flip');
+            }, 400);
+
+            cardObj.currentVal = newVal;
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+
+            // ТЕПЕРЬ СТРОГО РАЗДЕЛЯЕМ СИМВОЛЫ: h[0] и h[1] вместо всей строки h
+            flipTo(cards.h1, h[0]); flipTo(cards.h2, h[1]);
+            flipTo(cards.m1, m[0]); flipTo(cards.m2, m[1]);
+            flipTo(cards.s1, s[0]); flipTo(cards.s2, s[1]);
+        }
+
+        // Стартовая синхронизация
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        const initial = h + m + s;
+        
+        Object.keys(cards).forEach((key, idx) => {
+            cards[key].topText.textContent = initial[idx];
+            cards[key].bottomText.textContent = initial[idx];
+            cards[key].currentVal = initial[idx];
+        });
+
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>
